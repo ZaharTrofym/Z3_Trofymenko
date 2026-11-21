@@ -13,6 +13,26 @@ const formError = ref("");
 
 const editingId = ref(null);
 
+const filter = ref("all");
+const search = ref("");
+const sortBy = ref("date_from");
+
+const visibleTodos = computed(() => {
+  let list = [...todos.value];
+  if (filter.value === "open") {
+    list = list.filter((t) => !t.is_finished);
+  }
+  if (filter.value === "done") {
+    list = list.filter((t) => t.is_finished);
+  }
+  const text = search.value.trim().toLowerCase();
+  if (text !== "") {
+    list = list.filter((t) => t.title.toLowerCase().includes(text));
+  }
+  list.sort((a, b) => new Date(a[sortBy.value]) - new Date(b[sortBy.value]));
+  return list;
+});
+
 async function loadTodos() {
   loading.value = true;
   errorMessage.value = "";
@@ -80,11 +100,6 @@ async function toggleDone(todo) {
   }
 }
 
-const sortedTodos = computed(() => {
-  return [...todos.value].sort((a, b) => new Date(a.date_from) - new Date(b.date_from));
-});
-
-
 function toInputValue(iso) {
   const d = new Date(iso);
   const offset = d.getTimezoneOffset() * 60000;
@@ -110,6 +125,10 @@ function formatDate(iso) {
   return new Date(iso).toLocaleString("sk-SK", { dateStyle: "short", timeStyle: "short" });
 }
 
+function isOverdue(todo) {
+  return !todo.is_finished && new Date(todo.date_to) < new Date();
+}
+
 onMounted(loadTodos);
 </script>
 
@@ -118,8 +137,20 @@ onMounted(loadTodos);
     <h1>Môj TODO List</h1>
     <p v-if="loading">Načítavam…</p>
     <p v-if="errorMessage">{{ errorMessage }}</p>
+    <div>
+      <select v-model="filter">
+        <option value="all">Všetky</option>
+        <option value="open">Nedokončené</option>
+        <option value="done">Dokončené</option>
+      </select>
+      <input v-model="search" placeholder="Hľadať podľa názvu">
+      <select v-model="sortBy">
+        <option value="date_from">Podľa začiatku</option>
+        <option value="date_to">Podľa konca</option>
+      </select>
+    </div>
     <ul>
-      <li v-for="todo in sortedTodos" :key="todo.id" :class="{ done: todo.is_finished }">
+      <li v-for="todo in visibleTodos" :key="todo.id" :class="{ done: todo.is_finished, overdue: isOverdue(todo) }">
         <input type="checkbox" :checked="todo.is_finished" @change="toggleDone(todo)">
         {{ todo.title }} {{ todo.description }}
         ({{ formatDate(todo.date_from) }} – {{ formatDate(todo.date_to) }})
@@ -127,6 +158,7 @@ onMounted(loadTodos);
         <button type="button" @click="removeTodo(todo)">Zmazať</button>
       </li>
     </ul>
+    <p v-if="!loading && visibleTodos.length === 0">Žiadne úlohy na zobrazenie.</p>
     <form @submit.prevent="addTodo">
       <input v-model="newTodo.title" placeholder="Názov" maxlength="200" required>
       <textarea v-model="newTodo.description" placeholder="Popis" maxlength="1000"></textarea>
@@ -143,5 +175,9 @@ onMounted(loadTodos);
   .done {
     text-decoration: line-through;
     color: gray;
+  }
+
+  .overdue {
+    color: red;
   }
 </style>
