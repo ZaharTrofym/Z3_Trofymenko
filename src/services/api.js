@@ -21,3 +21,22 @@ export async function createTodo(name, todo) {
   }
   return await response.json();
 }
+
+export async function deleteTodo(name, id) {
+  const response = await fetch(BASE_URL + "/" + encodeURIComponent(name) + "/" + id, {
+    method: "DELETE"
+  });
+  if (!response.ok) {
+    throw new Error("HTTP " + response.status);
+  }
+}
+
+export async function setDone(name, id, done) {
+  const action = done ? "done" : "undone";
+  const response = await fetch(BASE_URL + "/" + encodeURIComponent(name) + "/" + id + "/" + action, {
+    method: "PATCH"
+  });
+  if (!response.ok) {
+    throw new Error("HTTP " + response.status);
+  }
+}

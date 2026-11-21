@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { getTodos, createTodo  } from "./services/api.js";
+import { ref, computed, onMounted } from "vue";
+import { getTodos, createTodo, deleteTodo, setDone } from "./services/api.js";
+const student = "xtrofymenko";
 const todos = ref([]);
 const loading = ref(false);
 const errorMessage = ref("");
@@ -9,7 +10,7 @@ async function loadTodos() {
   loading.value = true;
   errorMessage.value = "";
   try {
-    todos.value = await getTodos("xtrofymenko");
+    todos.value = await getTodos(student);
   } catch (error) {
     errorMessage.value = "Chyba: " + error.message;
   } finally {
@@ -31,7 +32,7 @@ async function addTodo() {
   }
   saving.value = true;
   try {
-    await createTodo("xtrofymenko", {
+    await createTodo(student, {
       title: newTodo.value.title,
       description: newTodo.value.description,
       date_from: from.toISOString(),
@@ -47,6 +48,31 @@ async function addTodo() {
   }
 }
 
+async function removeTodo(todo) {
+  if (!confirm("Naozaj chcete zmazať úlohu „" + todo.title + "“?")) {
+    return;
+  }
+  try {
+    await deleteTodo(student, todo.id);
+    await loadTodos();
+  } catch (error) {
+    errorMessage.value = "Chyba: " + error.message;
+  }
+}
+
+async function toggleDone(todo) {
+  try {
+    await setDone(student, todo.id, !todo.is_finished);
+    await loadTodos();
+  } catch (error) {
+    errorMessage.value = "Chyba: " + error.message;
+  }
+}
+
+const sortedTodos = computed(() => {
+  return [...todos.value].sort((a, b) => new Date(a.date_from) - new Date(b.date_from));
+});
+
 onMounted(loadTodos);
 </script>
 
@@ -56,7 +82,11 @@ onMounted(loadTodos);
     <p v-if="loading">Načítavam…</p>
     <p v-if="errorMessage">{{ errorMessage }}</p>
     <ul>
-      <li v-for="todo in todos" :key="todo.id">{{ todo.title }} {{ todo.description }}</li>
+      <li v-for="todo in sortedTodos" :key="todo.id" :class="{ done: todo.is_finished }">
+        <input type="checkbox" :checked="todo.is_finished" @change="toggleDone(todo)">
+        {{ todo.title }} {{ todo.description }}
+        <button type="button" @click="removeTodo(todo)">Zmazať</button>
+      </li>
     </ul>
     <form @submit.prevent="addTodo">
       <input v-model="newTodo.title" placeholder="Názov" maxlength="200" required>
@@ -68,3 +98,10 @@ onMounted(loadTodos);
     </form>
   </main>
 </template>
+
+<style scoped>
+  .done {
+    text-decoration: line-through;
+    color: gray;
+  }
+</style>
