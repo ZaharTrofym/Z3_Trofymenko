@@ -40,3 +40,15 @@ export async function setDone(name, id, done) {
     throw new Error("HTTP " + response.status);
   }
 }
+
+export async function updateTodo(name, id, todo) {
+  const response = await fetch(BASE_URL + "/" + encodeURIComponent(name) + "/" + id, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(todo)
+  });
+  if (!response.ok) {
+    throw new Error("HTTP " + response.status);
+  }
+  return await response.json();
+}
