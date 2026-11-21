@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import { getTodos } from "./services/api.js";
-
+import { getTodos, createTodo  } from "./services/api.js";
 const todos = ref([]);
 const loading = ref(false);
 const errorMessage = ref("");
