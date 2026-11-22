@@ -18,3 +18,12 @@ export function dateOnly(date) {
   const d = String(date.getDate()).padStart(2, "0");
   return y + "-" + m + "-" + d;
 }
+
+export function formatShort(iso) {
+  return new Date(iso).toLocaleString("sk-SK", {
+    day: "numeric",
+    month: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}

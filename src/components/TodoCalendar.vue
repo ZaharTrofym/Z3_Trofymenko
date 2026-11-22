@@ -5,7 +5,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import skLocale from "@fullcalendar/core/locales/sk";
-import { isOverdue, dateOnly } from "../utils/dates.js";
+import { isOverdue, dateOnly, formatDate, formatShort } from "../utils/dates.js";
 
 const props = defineProps({
   todos: { type: Array, required: true }
@@ -18,7 +18,12 @@ const calendarOptions = computed(() => ({
   initialView: "dayGridMonth",
   locale: skLocale,
   height: "auto",
-  displayEventTime: false,
+  displayEventTime: true,
+  displayEventEnd: true,
+  views: {
+    dayGridMonth: { displayEventEnd: false }
+  },
+  eventTimeFormat: { hour: "2-digit", minute: "2-digit", hour12: false },
   dayMaxEvents: 3,
   slotMinTime: "07:00:00",
   slotMaxTime: "22:00:00",
@@ -38,9 +43,14 @@ const calendarOptions = computed(() => ({
     const from = new Date(t.date_from);
     const to = new Date(t.date_to);
     const multiDay = from.toDateString() !== to.toDateString();
+    let title = (t.is_finished ? "✓ " : "") + t.title;
+    if (multiDay) {
+      title = title + " (" + formatShort(t.date_from) + " – " + formatShort(t.date_to) + ")";
+    }
     return {
       id: String(t.id),
-      title: (t.is_finished ? "✓ " : "") + t.title,
+      title: title,
+      hint: t.title + ": " + formatDate(t.date_from) + " – " + formatDate(t.date_to),
       allDay: multiDay,
       start: multiDay ? dateOnly(from) : t.date_from,
       end: multiDay ? dateOnly(new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1)) : t.date_to,
@@ -49,6 +59,9 @@ const calendarOptions = computed(() => ({
       classNames: [t.is_finished ? "ev-done" : "ev-open"]
     };
   }),
+  eventDidMount: (info) => {
+    info.el.title = info.event.extendedProps.hint;
+  },
   eventClick: (info) => {
     emit("select", Number(info.event.id));
   },
