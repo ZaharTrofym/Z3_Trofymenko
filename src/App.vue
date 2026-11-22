@@ -17,6 +17,7 @@ const loginError = ref("");
 const todos = ref([]);
 const loading = ref(false);
 const errorMessage = ref("");
+const successMessage = ref("");
 
 const newTodo = ref({ title: "", description: "", date_from: "", date_to: "" });
 const saving = ref(false);
@@ -116,6 +117,7 @@ async function addTodo() {
   }
   saving.value = true;
   try {
+    const wasEditing = editingId.value !== null;
     const data = {
       title: newTodo.value.title,
       description: newTodo.value.description,
@@ -133,6 +135,7 @@ async function addTodo() {
     editingId.value = null;
     newTodo.value = { title: "", description: "", date_from: "", date_to: "" };
     await loadTodos();
+    showSuccess(wasEditing ? "Úloha bola upravená." : "Úloha bola vytvorená.");
   } catch (error) {
     formError.value = "Chyba: " + error.message;
   } finally {
@@ -147,6 +150,7 @@ async function removeTodo(todo) {
   try {
     await deleteTodo(student.value, todo.id);
     await loadTodos();
+    showSuccess("Úloha bola zmazaná.");
   } catch (error) {
     errorMessage.value = "Chyba: " + error.message;
   }
@@ -154,8 +158,10 @@ async function removeTodo(todo) {
 
 async function toggleDone(todo) {
   try {
+    const text = todo.is_finished ? "Úloha bola znovu otvorená." : "Úloha bola dokončená.";
     await setDone(student.value, todo.id, !todo.is_finished);
     await loadTodos();
+    showSuccess(text);
   } catch (error) {
     errorMessage.value = "Chyba: " + error.message;
   }
@@ -198,6 +204,7 @@ async function resetAll() {
     await resetTodos(student.value);
     selectedId.value = null;
     await loadTodos();
+    showSuccess("Ukážkové úlohy boli obnovené.");
   } catch (error) {
     errorMessage.value = "Chyba: " + error.message;
   }
@@ -220,6 +227,13 @@ function logout() {
   localStorage.removeItem("student");
   todos.value = [];
   selectedId.value = null;
+}
+
+function showSuccess(text) {
+  successMessage.value = text;
+  setTimeout(() => {
+    successMessage.value = "";
+  }, 3000);
 }
 
 onMounted(() => {
@@ -252,6 +266,7 @@ onMounted(() => {
 
     <p v-if="loading" class="text-muted">Načítavam…</p>
     <p v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</p>
+    <p v-if="successMessage" class="alert alert-success">{{ successMessage }}</p>
 
     <div class="layout">
       <section class="calendar-card">
@@ -292,7 +307,9 @@ onMounted(() => {
           <label class="form-label small mb-1">Koniec</label>
           <input v-model="newTodo.date_to" class="form-control mb-2" type="datetime-local" required>
           <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary" :disabled="saving">{{ editingId === null ? "Pridať" : "Uložiť" }}</button>
+            <button type="submit" class="btn btn-primary" :disabled="saving">
+              {{ saving ? "Ukladám…" : (editingId === null ? "Pridať" : "Uložiť") }}
+            </button>
             <button v-if="editingId !== null" type="button" class="btn btn-outline-secondary" @click="cancelEdit">Zrušiť</button>
           </div>
           <p v-if="formError" class="text-danger small mt-2 mb-0">{{ formError }}</p>
