@@ -60,6 +60,8 @@ const calendarOptions = computed(() => ({
   locale: skLocale,
   height: 600,
   displayEventTime: false,
+  dayMaxEvents: true,
+  scrollTime: "08:00:00",
   headerToolbar: {
     left: "prev,next today",
     center: "title",
@@ -72,11 +74,15 @@ const calendarOptions = computed(() => ({
     } else if (isOverdue(t)) {
       color = "#dc3545";
     }
+    const from = new Date(t.date_from);
+    const to = new Date(t.date_to);
+    const multiDay = from.toDateString() !== to.toDateString();
     return {
       id: String(t.id),
       title: (t.is_finished ? "✓ " : "") + t.title,
-      start: t.date_from,
-      end: t.date_to,
+      allDay: multiDay,
+      start: multiDay ? dateOnly(from) : t.date_from,
+      end: multiDay ? dateOnly(new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1)) : t.date_to,
       backgroundColor: color,
       borderColor: color,
       classNames: [t.is_finished ? "ev-done" : "ev-open"]
@@ -215,6 +221,13 @@ function isOverdue(todo) {
   return !todo.is_finished && new Date(todo.date_to) < new Date();
 }
 
+function dateOnly(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + d;
+}
+
 async function resetAll() {
   if (!confirm("Všetky vaše úlohy budú odstránené a nahradené piatimi ukážkovými úlohami. Pokračovať?")) {
     return;
@@ -276,13 +289,13 @@ onMounted(() => {
 
   <main v-else class="container py-3">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-      <h1 class="h2 mb-0">Môj TODO List</h1>
+      <h1 class="h2 mb-0 header-side">Môj TODO List</h1>
       <nav class="nav nav-pills">
         <a class="nav-link" href="#calendar">Kalendár</a>
         <a class="nav-link" href="#list">Zoznam úloh</a>
         <a class="nav-link" href="#about">O projekte</a>
       </nav>
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-2 justify-content-end header-side">
         <button type="button" class="btn btn-outline-secondary btn-sm" @click="resetAll">Obnoviť ukážkové úlohy</button>
         <button type="button" class="btn btn-outline-secondary btn-sm" @click="logout">Zmeniť študenta ({{ student }})</button>
       </div>
@@ -500,6 +513,12 @@ onMounted(() => {
   @media (max-width: 800px) {
     .layout {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .header-side {
+      flex: 1 1 0;
     }
   }
 </style>
