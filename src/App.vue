@@ -2,6 +2,12 @@
 import { ref, computed, onMounted } from "vue";
 import { getTodos, createTodo, deleteTodo, setDone, updateTodo } from "./services/api.js";
 
+import FullCalendar from "@fullcalendar/vue3";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import skLocale from "@fullcalendar/core/locales/sk";
+
 const student = "xtrofymenko";
 const todos = ref([]);
 const loading = ref(false);
@@ -32,6 +38,24 @@ const visibleTodos = computed(() => {
   list.sort((a, b) => new Date(a[sortBy.value]) - new Date(b[sortBy.value]));
   return list;
 });
+
+const calendarOptions = computed(() => ({
+  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+  initialView: "dayGridMonth",
+  locale: skLocale,
+  headerToolbar: {
+    left: "prev,next today",
+    center: "title",
+    right: "dayGridMonth,timeGridWeek,timeGridDay"
+  },
+  events: todos.value.map((t) => ({
+    id: String(t.id),
+    title: t.title,
+    start: t.date_from,
+    end: t.date_to,
+    classNames: [t.is_finished ? "ev-done" : "ev-open"]
+  }))
+}));
 
 async function loadTodos() {
   loading.value = true;
@@ -149,6 +173,7 @@ onMounted(loadTodos);
         <option value="date_to">Podľa konca</option>
       </select>
     </div>
+    <FullCalendar :options="calendarOptions" />
     <ul>
       <li v-for="todo in visibleTodos" :key="todo.id" :class="{ done: todo.is_finished, overdue: isOverdue(todo) }">
         <input type="checkbox" :checked="todo.is_finished" @change="toggleDone(todo)">
@@ -179,5 +204,10 @@ onMounted(loadTodos);
 
   .overdue {
     color: red;
+  }
+
+  :deep(.ev-done) {
+    opacity: 0.5;
+    text-decoration: line-through;
   }
 </style>
