@@ -16,7 +16,12 @@ const errors = ref({ title: "", date_from: "", date_to: "" });
 watch(
   () => props.todo,
   (newValue) => {
-    form.value = { ...newValue };
+    if (newValue.onlyDates) {
+      form.value.date_from = newValue.date_from;
+      form.value.date_to = newValue.date_to;
+    } else {
+      form.value = { ...newValue };
+    }
     errors.value = { title: "", date_from: "", date_to: "" };
   }
 );

@@ -27,6 +27,7 @@ function emptyTodo() {
 const formTodo = ref(emptyTodo());
 const editingId = ref(null);
 const saving = ref(false);
+const busy = ref(false);
 const formError = ref("");
 
 const selectedId = ref(null);
@@ -69,16 +70,26 @@ async function removeTodo(todo) {
   if (!confirm("Naozaj chcete zmazať úlohu „" + todo.title + "“?")) {
     return;
   }
+  busy.value = true;
   try {
     await deleteTodo(student.value, todo.id);
+    if (editingId.value === todo.id) {
+      cancelEdit();
+    }
     await loadTodos();
     showSuccess("Úloha bola zmazaná.");
   } catch (error) {
     errorMessage.value = "Chyba: " + error.message;
+  } finally {
+    busy.value = false;
   }
 }
 
 async function toggleDone(todo) {
+  if (busy.value) {
+    return;
+  }
+  busy.value = true;
   try {
     const text = todo.is_finished ? "Úloha bola znovu otvorená." : "Úloha bola dokončená.";
     await setDone(student.value, todo.id, !todo.is_finished);
@@ -86,6 +97,8 @@ async function toggleDone(todo) {
     showSuccess(text);
   } catch (error) {
     errorMessage.value = "Chyba: " + error.message;
+  } finally {
+    busy.value = false;
   }
 }
 
@@ -115,6 +128,7 @@ function startEdit(todo) {
 }
 
 function startCreate(range) {
+  const wasEditing = editingId.value !== null;
   editingId.value = null;
   formError.value = "";
   formTodo.value = {
@@ -122,7 +136,8 @@ function startCreate(range) {
     description: "",
     date_from: toInputValue(range.from.toISOString()),
     date_to: toInputValue(range.to.toISOString()),
-    is_finished: false
+    is_finished: false,
+    onlyDates: !wasEditing
   };
   scrollToForm();
 }
@@ -137,6 +152,7 @@ async function resetAll() {
   if (!confirm("Všetky vaše úlohy budú odstránené a nahradené piatimi ukážkovými úlohami. Pokračovať?")) {
     return;
   }
+  busy.value = true;
   try {
     await resetTodos(student.value);
     selectedId.value = null;
@@ -144,6 +160,8 @@ async function resetAll() {
     showSuccess("Ukážkové úlohy boli obnovené.");
   } catch (error) {
     errorMessage.value = "Chyba: " + error.message;
+  } finally {
+    busy.value = false;
   }
 }
 
@@ -200,8 +218,8 @@ onMounted(() => {
     <p v-if="loading && todos.length === 0" class="text-muted">
       <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Načítavam…
     </p>
-    <div v-if="loading && todos.length > 0" class="loading-badge" role="status">
-      <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Aktualizujem…
+    <div v-if="busy || (loading && todos.length > 0)" class="loading-badge" role="status">
+      <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> {{ busy ? "Ukladám…" : "Aktualizujem…" }}
     </div>
     <div v-if="errorMessage" class="alert alert-danger d-flex flex-wrap justify-content-between align-items-center gap-2" role="alert">
       <span>{{ errorMessage }}</span>
