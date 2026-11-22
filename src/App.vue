@@ -8,7 +8,10 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import skLocale from "@fullcalendar/core/locales/sk";
 
-const student = "xtrofymenko";
+const student = ref(localStorage.getItem("student") ?? "");
+const studentInput = ref("");
+const loginError = ref("");
+
 const todos = ref([]);
 const loading = ref(false);
 const errorMessage = ref("");
@@ -82,7 +85,7 @@ async function loadTodos() {
   loading.value = true;
   errorMessage.value = "";
   try {
-    todos.value = await getTodos(student);
+    todos.value = await getTodos(student.value);
   } catch (error) {
     errorMessage.value = "Chyba: " + error.message;
   } finally {
@@ -108,11 +111,11 @@ async function addTodo() {
       is_finished: false
     };
     if (editingId.value === null) {
-      await createTodo(student, data);
+      await createTodo(student.value, data);
     } else {
       const old = todos.value.find((t) => t.id === editingId.value);
       data.is_finished = old.is_finished;
-      await updateTodo(student, editingId.value, data);
+      await updateTodo(student.value, editingId.value, data);
     }
     editingId.value = null;
     newTodo.value = { title: "", description: "", date_from: "", date_to: "" };
@@ -129,7 +132,7 @@ async function removeTodo(todo) {
     return;
   }
   try {
-    await deleteTodo(student, todo.id);
+    await deleteTodo(student.value, todo.id);
     await loadTodos();
   } catch (error) {
     errorMessage.value = "Chyba: " + error.message;
@@ -138,7 +141,7 @@ async function removeTodo(todo) {
 
 async function toggleDone(todo) {
   try {
-    await setDone(student, todo.id, !todo.is_finished);
+    await setDone(student.value, todo.id, !todo.is_finished);
     await loadTodos();
   } catch (error) {
     errorMessage.value = "Chyba: " + error.message;
@@ -179,7 +182,7 @@ async function resetAll() {
     return;
   }
   try {
-    await resetTodos(student);
+    await resetTodos(student.value);
     selectedId.value = null;
     await loadTodos();
   } catch (error) {
@@ -187,13 +190,45 @@ async function resetAll() {
   }
 }
 
-onMounted(loadTodos);
+async function login() {
+  const name = studentInput.value.trim();
+  loginError.value = "";
+  try {
+    todos.value = await getTodos(name);
+    student.value = name;
+    localStorage.setItem("student", name);
+  } catch (error) {
+    loginError.value = error.message;
+  }
+}
+
+function logout() {
+  student.value = "";
+  localStorage.removeItem("student");
+  todos.value = [];
+  selectedId.value = null;
+}
+
+onMounted(() => {
+  if (student.value !== "") {
+    loadTodos();
+  }
+});
 </script>
 
 <template>
-  <main>
+  <main v-if="!student">
+    <h1>Môj TODO List</h1>
+    <form @submit.prevent="login">
+      <input v-model="studentInput" placeholder="Identifikátor študenta" required>
+      <button type="submit">Pokračovať</button>
+      <p v-if="loginError">{{ loginError }}</p>
+    </form>
+  </main>
+  <main v-else>
     <h1>Môj TODO List</h1>
     <button type="button" @click="resetAll">Obnoviť ukážkové úlohy</button>
+    <button type="button" @click="logout">Zmeniť študenta</button>
     <p v-if="loading">Načítavam…</p>
     <p v-if="errorMessage">{{ errorMessage }}</p>
 

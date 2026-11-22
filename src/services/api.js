@@ -2,6 +2,9 @@ const BASE_URL = "https://wt1zadanie.iolab.sk/api";
 
 export async function getTodos(name) {
   const response = await fetch(BASE_URL + "/" + encodeURIComponent(name));
+  if (response.status === 403) {
+    throw new Error("Neznámy identifikátor študenta.");
+  }
   if (!response.ok) {
     throw new Error("HTTP " + response.status);
   }
