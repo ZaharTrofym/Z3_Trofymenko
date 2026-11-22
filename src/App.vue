@@ -23,6 +23,9 @@ const filter = ref("all");
 const search = ref("");
 const sortBy = ref("date_from");
 
+const selectedId = ref(null);
+const selectedTodo = computed(() => todos.value.find((t) => t.id === selectedId.value) ?? null);
+
 const visibleTodos = computed(() => {
   let list = [...todos.value];
   if (filter.value === "open") {
@@ -43,6 +46,7 @@ const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
   initialView: "dayGridMonth",
   locale: skLocale,
+  height: 600,
   headerToolbar: {
     left: "prev,next today",
     center: "title",
@@ -54,7 +58,24 @@ const calendarOptions = computed(() => ({
     start: t.date_from,
     end: t.date_to,
     classNames: [t.is_finished ? "ev-done" : "ev-open"]
-  }))
+  })),
+    eventClick: (info) => {
+      selectedId.value = Number(info.event.id);
+    },
+    dateClick: (info) => {
+      const start = new Date(info.date);
+      if (info.allDay) {
+        start.setHours(9, 0, 0, 0);
+      }
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      editingId.value = null;
+      newTodo.value = {
+        title: "",
+        description: "",
+        date_from: toInputValue(start.toISOString()),
+        date_to: toInputValue(end.toISOString())
+      };
+    }
 }));
 
 async function loadTodos() {
@@ -161,6 +182,40 @@ onMounted(loadTodos);
     <h1>Môj TODO List</h1>
     <p v-if="loading">Načítavam…</p>
     <p v-if="errorMessage">{{ errorMessage }}</p>
+
+    <div class="layout">
+      <section>
+        <FullCalendar :options="calendarOptions" />
+      </section>
+
+      <aside>
+        <section v-if="selectedTodo" class="panel">
+          <h2>{{ selectedTodo.title }}</h2>
+          <p>{{ selectedTodo.description }}</p>
+          <p>{{ formatDate(selectedTodo.date_from) }} – {{ formatDate(selectedTodo.date_to) }}</p>
+          <p>{{ selectedTodo.is_finished ? "Dokončená" : "Nedokončená" }}</p>
+          <button type="button" @click="toggleDone(selectedTodo)">
+            {{ selectedTodo.is_finished ? "Vrátiť späť" : "Označiť ako dokončenú" }}
+          </button>
+          <button type="button" @click="startEdit(selectedTodo)">Upraviť</button>
+          <button type="button" @click="removeTodo(selectedTodo)">Zmazať</button>
+          <button type="button" @click="selectedId = null">Zavrieť</button>
+        </section>
+
+        <form class="panel" @submit.prevent="addTodo">
+          <h2>{{ editingId === null ? "Nová úloha" : "Úprava úlohy" }}</h2>
+          <input v-model="newTodo.title" placeholder="Názov" maxlength="200" required>
+          <textarea v-model="newTodo.description" placeholder="Popis" maxlength="1000"></textarea>
+          <input v-model="newTodo.date_from" type="datetime-local" required>
+          <input v-model="newTodo.date_to" type="datetime-local" required>
+          <button type="submit" :disabled="saving">{{ editingId === null ? "Pridať" : "Uložiť" }}</button>
+          <button v-if="editingId !== null" type="button" @click="cancelEdit">Zrušiť</button>
+          <p v-if="formError">{{ formError }}</p>
+        </form>
+      </aside>
+    </div>
+
+    <h2>Zoznam úloh</h2>
     <div>
       <select v-model="filter">
         <option value="all">Všetky</option>
@@ -173,7 +228,6 @@ onMounted(loadTodos);
         <option value="date_to">Podľa konca</option>
       </select>
     </div>
-    <FullCalendar :options="calendarOptions" />
     <ul>
       <li v-for="todo in visibleTodos" :key="todo.id" :class="{ done: todo.is_finished, overdue: isOverdue(todo) }">
         <input type="checkbox" :checked="todo.is_finished" @change="toggleDone(todo)">
@@ -184,15 +238,6 @@ onMounted(loadTodos);
       </li>
     </ul>
     <p v-if="!loading && visibleTodos.length === 0">Žiadne úlohy na zobrazenie.</p>
-    <form @submit.prevent="addTodo">
-      <input v-model="newTodo.title" placeholder="Názov" maxlength="200" required>
-      <textarea v-model="newTodo.description" placeholder="Popis" maxlength="1000"></textarea>
-      <input v-model="newTodo.date_from" type="datetime-local" required>
-      <input v-model="newTodo.date_to" type="datetime-local" required>
-      <button type="submit" :disabled="saving">{{ editingId === null ? "Pridať" : "Uložiť" }}</button>
-      <button v-if="editingId !== null" type="button" @click="cancelEdit">Zrušiť</button>
-      <p v-if="formError">{{ formError }}</p>
-    </form>
   </main>
 </template>
 
@@ -209,5 +254,33 @@ onMounted(loadTodos);
   :deep(.ev-done) {
     opacity: 0.5;
     text-decoration: line-through;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .panel {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .panel input,
+  .panel textarea {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 800px) {
+    .layout {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
