@@ -66,6 +66,22 @@ const calendarOptions = computed(() => ({
   eventClick: (info) => {
     emit("select", Number(info.event.id));
   },
+  selectable: true,
+  select: (info) => {
+    const days = (info.end - info.start) / (24 * 60 * 60 * 1000);
+    const hours = (info.end - info.start) / (60 * 60 * 1000);
+    if ((info.allDay && days <= 1) || (!info.allDay && hours <= 1)) {
+      return;
+    }
+    const start = new Date(info.start);
+    const end = new Date(info.end);
+    if (info.allDay) {
+      start.setHours(9, 0, 0, 0);
+      end.setDate(end.getDate() - 1);
+      end.setHours(17, 0, 0, 0);
+    }
+    emit("create", { from: start, to: end });
+  },
   dateClick: (info) => {
     const start = new Date(info.date);
     if (info.allDay) {

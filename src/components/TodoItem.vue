@@ -24,6 +24,7 @@ defineEmits(["toggle", "edit", "remove"]);
     <div class="d-flex gap-1 align-items-center">
       <span v-if="todo.is_finished" class="badge text-bg-secondary">Dokončená</span>
       <span v-else-if="isOverdue(todo)" class="badge text-bg-danger">Po termíne</span>
+      <span v-else class="badge text-bg-primary">Nedokončená</span>
       <button type="button" class="btn btn-sm btn-outline-primary" @click="$emit('edit', todo)">Upraviť</button>
       <button type="button" class="btn btn-sm btn-outline-danger" @click="$emit('remove', todo)">Zmazať</button>
     </div>

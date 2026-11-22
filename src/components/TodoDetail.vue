@@ -1,5 +1,5 @@
 <script setup>
-import { formatDate } from "../utils/dates.js";
+import { formatDate, isOverdue } from "../utils/dates.js";
 
 defineProps({
   todo: { type: Object, required: true }
@@ -17,6 +17,7 @@ defineEmits(["toggle", "edit", "remove", "close"]);
       <span class="badge" :class="todo.is_finished ? 'text-bg-secondary' : 'text-bg-primary'">
         {{ todo.is_finished ? "Dokončená" : "Nedokončená" }}
       </span>
+      <span v-if="isOverdue(todo)" class="badge text-bg-danger ms-1">Po termíne</span>
     </p>
     <div class="d-flex flex-wrap gap-2">
       <button type="button" class="btn btn-success btn-sm" @click="$emit('toggle', todo)">
