@@ -19,7 +19,13 @@ const loading = ref(false);
 const errorMessage = ref("");
 const successMessage = ref("");
 
-const newTodo = ref({ title: "", description: "", date_from: "", date_to: "" });
+function emptyTodo() {
+  return { title: "", description: "", date_from: "", date_to: "", is_finished: false };
+}
+
+const newTodo = ref(emptyTodo());
+const errors = ref({ title: "", date_from: "", date_to: "" });
+
 const saving = ref(false);
 const formError = ref("");
 
@@ -90,7 +96,8 @@ const calendarOptions = computed(() => ({
       title: "",
       description: "",
       date_from: toInputValue(start.toISOString()),
-      date_to: toInputValue(end.toISOString())
+      date_to: toInputValue(end.toISOString()),
+      is_finished: false
     };
   }
 }));
@@ -109,31 +116,40 @@ async function loadTodos() {
 
 async function addTodo() {
   formError.value = "";
+  errors.value = { title: "", date_from: "", date_to: "" };
   const from = new Date(newTodo.value.date_from);
   const to = new Date(newTodo.value.date_to);
-  if (to < from) {
-    formError.value = "Koniec nesmie byť skôr ako začiatok.";
+  if (newTodo.value.title.trim() === "") {
+    errors.value.title = "Názov je povinný.";
+  }
+  if (newTodo.value.date_from === "") {
+    errors.value.date_from = "Začiatok je povinný.";
+  }
+  if (newTodo.value.date_to === "") {
+    errors.value.date_to = "Koniec je povinný.";
+  } else if (to < from) {
+    errors.value.date_to = "Koniec nesmie byť skôr ako začiatok.";
+  }
+  if (errors.value.title || errors.value.date_from || errors.value.date_to) {
     return;
   }
   saving.value = true;
   try {
     const wasEditing = editingId.value !== null;
     const data = {
-      title: newTodo.value.title,
+      title: newTodo.value.title.trim(),
       description: newTodo.value.description,
       date_from: from.toISOString(),
       date_to: to.toISOString(),
-      is_finished: false
+      is_finished: newTodo.value.is_finished
     };
-    if (editingId.value === null) {
-      await createTodo(student.value, data);
-    } else {
-      const old = todos.value.find((t) => t.id === editingId.value);
-      data.is_finished = old.is_finished;
+    if (wasEditing) {
       await updateTodo(student.value, editingId.value, data);
+    } else {
+      await createTodo(student.value, data);
     }
     editingId.value = null;
-    newTodo.value = { title: "", description: "", date_from: "", date_to: "" };
+    newTodo.value = emptyTodo();
     await loadTodos();
     showSuccess(wasEditing ? "Úloha bola upravená." : "Úloha bola vytvorená.");
   } catch (error) {
@@ -174,18 +190,21 @@ function toInputValue(iso) {
 }
 
 function startEdit(todo) {
+  errors.value = { title: "", date_from: "", date_to: "" };
   editingId.value = todo.id;
   newTodo.value = {
     title: todo.title,
     description: todo.description,
     date_from: toInputValue(todo.date_from),
-    date_to: toInputValue(todo.date_to)
+    date_to: toInputValue(todo.date_to),
+    is_finished: todo.is_finished
   };
 }
 
 function cancelEdit() {
+  errors.value = { title: "", date_from: "", date_to: "" };
   editingId.value = null;
-  newTodo.value = { title: "", description: "", date_from: "", date_to: "" };
+  newTodo.value = emptyTodo();
 }
 
 function formatDate(iso) {
@@ -258,6 +277,11 @@ onMounted(() => {
   <main v-else class="container py-3">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <h1 class="h2 mb-0">Môj TODO List</h1>
+      <nav class="nav nav-pills">
+        <a class="nav-link" href="#calendar">Kalendár</a>
+        <a class="nav-link" href="#list">Zoznam úloh</a>
+        <a class="nav-link" href="#about">O projekte</a>
+      </nav>
       <div class="d-flex gap-2">
         <button type="button" class="btn btn-outline-secondary btn-sm" @click="resetAll">Obnoviť ukážkové úlohy</button>
         <button type="button" class="btn btn-outline-secondary btn-sm" @click="logout">Zmeniť študenta ({{ student }})</button>
@@ -269,7 +293,7 @@ onMounted(() => {
     <p v-if="successMessage" class="alert alert-success toast-msg">{{ successMessage }}</p>
 
     <div class="layout">
-      <section class="calendar-card">
+      <section id="calendar" class="calendar-card">
         <div class="small mb-2">
           <span class="dot" style="background: #0d6efd"></span> V práci
           <span class="dot ms-2" style="background: #dc3545"></span> Po termíne
@@ -298,15 +322,28 @@ onMounted(() => {
           </div>
         </section>
 
-        <form class="card card-body mb-3" @submit.prevent="addTodo">
+        <form class="card card-body mb-3" novalidate @submit.prevent="addTodo">
           <h2 class="h5">{{ editingId === null ? "Nová úloha" : "Úprava úlohy" }}</h2>
-          <input v-model="newTodo.title" class="form-control mb-2" placeholder="Názov" maxlength="200" required>
-          <textarea v-model="newTodo.description" class="form-control mb-2" placeholder="Popis" maxlength="1000"></textarea>
+
+          <input v-model="newTodo.title" class="form-control" :class="{ 'is-invalid': errors.title }" placeholder="Názov" maxlength="200">
+          <div class="invalid-feedback">{{ errors.title }}</div>
+
+          <textarea v-model="newTodo.description" class="form-control mt-2 mb-2" placeholder="Popis" maxlength="1000"></textarea>
+
           <label class="form-label small mb-1">Začiatok</label>
-          <input v-model="newTodo.date_from" class="form-control mb-2" type="datetime-local" required>
-          <label class="form-label small mb-1">Koniec</label>
-          <input v-model="newTodo.date_to" class="form-control mb-2" type="datetime-local" required>
-          <div class="d-flex gap-2">
+          <input v-model="newTodo.date_from" class="form-control" :class="{ 'is-invalid': errors.date_from }" type="datetime-local">
+          <div class="invalid-feedback">{{ errors.date_from }}</div>
+
+          <label class="form-label small mb-1 mt-2">Koniec</label>
+          <input v-model="newTodo.date_to" class="form-control" :class="{ 'is-invalid': errors.date_to }" type="datetime-local">
+          <div class="invalid-feedback">{{ errors.date_to }}</div>
+
+          <div v-if="editingId !== null" class="form-check mt-2">
+            <input id="finished" v-model="newTodo.is_finished" class="form-check-input" type="checkbox">
+            <label for="finished" class="form-check-label">Dokončená</label>
+          </div>
+
+          <div class="d-flex gap-2 mt-3">
             <button type="submit" class="btn btn-primary" :disabled="saving">
               {{ saving ? "Ukladám…" : (editingId === null ? "Pridať" : "Uložiť") }}
             </button>
@@ -317,7 +354,7 @@ onMounted(() => {
       </aside>
     </div>
 
-    <h2 class="h4 mt-4">Zoznam úloh</h2>
+    <h2 id="list" class="h4 mt-4">Zoznam úloh</h2>
     <div class="d-flex flex-wrap gap-2 mb-3">
       <select v-model="filter" class="form-select w-auto">
         <option value="all">Všetky</option>
@@ -357,7 +394,7 @@ onMounted(() => {
     <p v-if="!loading && visibleTodos.length === 0" class="text-muted mt-3">Žiadne úlohy na zobrazenie.</p>
   </main>
 
-  <footer class="container border-top py-3 mt-4 small text-muted">
+  <footer id="about" class="container border-top py-3 mt-4 small text-muted">
     <h2 class="h6">O projekte</h2>
     <p class="mb-1">Aplikácia „Môj TODO List“ slúži na správu osobných úloh. Úlohy sa ukladajú na serveri cez REST API, zobrazujú sa v zozname aj v kalendári.</p>
     <p class="mb-1">Použité technológie: Vue 3, Vite, FullCalendar 6 (kalendár), Bootstrap 5 (štýly), REST API https://wt1zadanie.iolab.sk.</p>
@@ -368,6 +405,20 @@ onMounted(() => {
 <style scoped>
   :global(body) {
     background: #f4f6fb;
+  }
+
+  :global(html) {
+    scroll-behavior: smooth;
+  }
+
+  .nav-link {
+    color: #495057;
+    font-weight: 500;
+  }
+
+  .nav-link:hover {
+    background: #e7ecf7;
+    color: #0d6efd;
   }
 
   .calendar-card,
