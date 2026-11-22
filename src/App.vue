@@ -8,6 +8,8 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import skLocale from "@fullcalendar/core/locales/sk";
 
+import "bootstrap/dist/css/bootstrap.min.css";
+
 const student = ref(localStorage.getItem("student") ?? "");
 const studentInput = ref("");
 const loginError = ref("");
@@ -50,35 +52,46 @@ const calendarOptions = computed(() => ({
   initialView: "dayGridMonth",
   locale: skLocale,
   height: 600,
+  displayEventTime: false,
   headerToolbar: {
     left: "prev,next today",
     center: "title",
     right: "dayGridMonth,timeGridWeek,timeGridDay"
   },
-  events: todos.value.map((t) => ({
-    id: String(t.id),
-    title: t.title,
-    start: t.date_from,
-    end: t.date_to,
-    classNames: [t.is_finished ? "ev-done" : "ev-open"]
-  })),
-    eventClick: (info) => {
-      selectedId.value = Number(info.event.id);
-    },
-    dateClick: (info) => {
-      const start = new Date(info.date);
-      if (info.allDay) {
-        start.setHours(9, 0, 0, 0);
-      }
-      const end = new Date(start.getTime() + 60 * 60 * 1000);
-      editingId.value = null;
-      newTodo.value = {
-        title: "",
-        description: "",
-        date_from: toInputValue(start.toISOString()),
-        date_to: toInputValue(end.toISOString())
-      };
+  events: todos.value.map((t) => {
+    let color = "#0d6efd";
+    if (t.is_finished) {
+      color = "#6c757d";
+    } else if (isOverdue(t)) {
+      color = "#dc3545";
     }
+    return {
+      id: String(t.id),
+      title: (t.is_finished ? "✓ " : "") + t.title,
+      start: t.date_from,
+      end: t.date_to,
+      backgroundColor: color,
+      borderColor: color,
+      classNames: [t.is_finished ? "ev-done" : "ev-open"]
+    };
+  }),
+  eventClick: (info) => {
+    selectedId.value = Number(info.event.id);
+  },
+  dateClick: (info) => {
+    const start = new Date(info.date);
+    if (info.allDay) {
+      start.setHours(9, 0, 0, 0);
+    }
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    editingId.value = null;
+    newTodo.value = {
+      title: "",
+      description: "",
+      date_from: toInputValue(start.toISOString()),
+      date_to: toInputValue(end.toISOString())
+    };
+  }
 }));
 
 async function loadTodos() {
@@ -217,98 +230,187 @@ onMounted(() => {
 </script>
 
 <template>
-  <main v-if="!student">
-    <h1>Môj TODO List</h1>
-    <form @submit.prevent="login">
-      <input v-model="studentInput" placeholder="Identifikátor študenta" required>
-      <button type="submit">Pokračovať</button>
-      <p v-if="loginError">{{ loginError }}</p>
-    </form>
+  <main v-if="!student" class="container py-5">
+    <div class="card card-body mx-auto" style="max-width: 420px">
+      <h1 class="h3 mb-3">Môj TODO List</h1>
+      <form @submit.prevent="login">
+        <input v-model="studentInput" class="form-control mb-2" placeholder="Identifikátor študenta" required>
+        <button type="submit" class="btn btn-primary w-100">Pokračovať</button>
+        <p v-if="loginError" class="alert alert-danger mt-3 mb-0">{{ loginError }}</p>
+      </form>
+    </div>
   </main>
-  <main v-else>
-    <h1>Môj TODO List</h1>
-    <button type="button" @click="resetAll">Obnoviť ukážkové úlohy</button>
-    <button type="button" @click="logout">Zmeniť študenta</button>
-    <p v-if="loading">Načítavam…</p>
-    <p v-if="errorMessage">{{ errorMessage }}</p>
+
+  <main v-else class="container py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <h1 class="h2 mb-0">Môj TODO List</h1>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="resetAll">Obnoviť ukážkové úlohy</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="logout">Zmeniť študenta ({{ student }})</button>
+      </div>
+    </div>
+
+    <p v-if="loading" class="text-muted">Načítavam…</p>
+    <p v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</p>
 
     <div class="layout">
-      <section>
+      <section class="calendar-card">
+        <div class="small mb-2">
+          <span class="dot" style="background: #0d6efd"></span> V práci
+          <span class="dot ms-2" style="background: #dc3545"></span> Po termíne
+          <span class="dot ms-2" style="background: #6c757d"></span> Dokončená
+        </div>
         <FullCalendar :options="calendarOptions" />
       </section>
 
       <aside>
-        <section v-if="selectedTodo" class="panel">
-          <h2>{{ selectedTodo.title }}</h2>
-          <p>{{ selectedTodo.description }}</p>
-          <p>{{ formatDate(selectedTodo.date_from) }} – {{ formatDate(selectedTodo.date_to) }}</p>
-          <p>{{ selectedTodo.is_finished ? "Dokončená" : "Nedokončená" }}</p>
-          <button type="button" @click="toggleDone(selectedTodo)">
-            {{ selectedTodo.is_finished ? "Vrátiť späť" : "Označiť ako dokončenú" }}
-          </button>
-          <button type="button" @click="startEdit(selectedTodo)">Upraviť</button>
-          <button type="button" @click="removeTodo(selectedTodo)">Zmazať</button>
-          <button type="button" @click="selectedId = null">Zavrieť</button>
+        <section v-if="selectedTodo" class="card card-body mb-3">
+          <h2 class="h5">{{ selectedTodo.title }}</h2>
+          <p class="mb-1">{{ selectedTodo.description }}</p>
+          <p class="small text-muted mb-1">{{ formatDate(selectedTodo.date_from) }} – {{ formatDate(selectedTodo.date_to) }}</p>
+          <p>
+            <span class="badge" :class="selectedTodo.is_finished ? 'text-bg-secondary' : 'text-bg-primary'">
+              {{ selectedTodo.is_finished ? "Dokončená" : "Nedokončená" }}
+            </span>
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-success btn-sm" @click="toggleDone(selectedTodo)">
+              {{ selectedTodo.is_finished ? "Vrátiť späť" : "Označiť ako dokončenú" }}
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" @click="startEdit(selectedTodo)">Upraviť</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" @click="removeTodo(selectedTodo)">Zmazať</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" @click="selectedId = null">Zavrieť</button>
+          </div>
         </section>
 
-        <form class="panel" @submit.prevent="addTodo">
-          <h2>{{ editingId === null ? "Nová úloha" : "Úprava úlohy" }}</h2>
-          <input v-model="newTodo.title" placeholder="Názov" maxlength="200" required>
-          <textarea v-model="newTodo.description" placeholder="Popis" maxlength="1000"></textarea>
-          <input v-model="newTodo.date_from" type="datetime-local" required>
-          <input v-model="newTodo.date_to" type="datetime-local" required>
-          <button type="submit" :disabled="saving">{{ editingId === null ? "Pridať" : "Uložiť" }}</button>
-          <button v-if="editingId !== null" type="button" @click="cancelEdit">Zrušiť</button>
-          <p v-if="formError">{{ formError }}</p>
+        <form class="card card-body mb-3" @submit.prevent="addTodo">
+          <h2 class="h5">{{ editingId === null ? "Nová úloha" : "Úprava úlohy" }}</h2>
+          <input v-model="newTodo.title" class="form-control mb-2" placeholder="Názov" maxlength="200" required>
+          <textarea v-model="newTodo.description" class="form-control mb-2" placeholder="Popis" maxlength="1000"></textarea>
+          <label class="form-label small mb-1">Začiatok</label>
+          <input v-model="newTodo.date_from" class="form-control mb-2" type="datetime-local" required>
+          <label class="form-label small mb-1">Koniec</label>
+          <input v-model="newTodo.date_to" class="form-control mb-2" type="datetime-local" required>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" :disabled="saving">{{ editingId === null ? "Pridať" : "Uložiť" }}</button>
+            <button v-if="editingId !== null" type="button" class="btn btn-outline-secondary" @click="cancelEdit">Zrušiť</button>
+          </div>
+          <p v-if="formError" class="text-danger small mt-2 mb-0">{{ formError }}</p>
         </form>
       </aside>
     </div>
 
-    <h2>Zoznam úloh</h2>
-    <div>
-      <select v-model="filter">
+    <h2 class="h4 mt-4">Zoznam úloh</h2>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <select v-model="filter" class="form-select w-auto">
         <option value="all">Všetky</option>
         <option value="open">Nedokončené</option>
         <option value="done">Dokončené</option>
       </select>
-      <input v-model="search" placeholder="Hľadať podľa názvu">
-      <select v-model="sortBy">
+      <input v-model="search" class="form-control w-auto" placeholder="Hľadať podľa názvu">
+      <select v-model="sortBy" class="form-select w-auto">
         <option value="date_from">Podľa začiatku</option>
         <option value="date_to">Podľa konca</option>
       </select>
     </div>
-    <ul>
-      <li v-for="todo in visibleTodos" :key="todo.id" :class="{ done: todo.is_finished, overdue: isOverdue(todo) }">
-        <input type="checkbox" :checked="todo.is_finished" @change="toggleDone(todo)">
-        {{ todo.title }} {{ todo.description }}
-        ({{ formatDate(todo.date_from) }} – {{ formatDate(todo.date_to) }})
-        <button type="button" @click="startEdit(todo)">Upraviť</button>
-        <button type="button" @click="removeTodo(todo)">Zmazať</button>
+
+    <ul class="list-group">
+      <li
+        v-for="todo in visibleTodos"
+        :key="todo.id"
+        class="list-group-item todo-item d-flex justify-content-between align-items-start gap-2"
+        :class="{ done: todo.is_finished, overdue: isOverdue(todo) }"
+      >
+        <div class="d-flex gap-2">
+          <input type="checkbox" class="form-check-input mt-1" :checked="todo.is_finished" @change="toggleDone(todo)">
+          <div>
+            <strong>{{ todo.title }}</strong>
+            <div class="small">{{ todo.description }}</div>
+            <div class="small text-muted">{{ formatDate(todo.date_from) }} – {{ formatDate(todo.date_to) }}</div>
+          </div>
+        </div>
+        <div class="d-flex gap-1 align-items-center">
+          <span v-if="todo.is_finished" class="badge text-bg-secondary">Dokončená</span>
+          <span v-else-if="isOverdue(todo)" class="badge text-bg-danger">Po termíne</span>
+          <button type="button" class="btn btn-sm btn-outline-primary" @click="startEdit(todo)">Upraviť</button>
+          <button type="button" class="btn btn-sm btn-outline-danger" @click="removeTodo(todo)">Zmazať</button>
+        </div>
       </li>
     </ul>
-    <p v-if="!loading && visibleTodos.length === 0">Žiadne úlohy na zobrazenie.</p>
+    <p v-if="!loading && visibleTodos.length === 0" class="text-muted mt-3">Žiadne úlohy na zobrazenie.</p>
   </main>
-  <footer>
-  <h2>O projekte</h2>
-    <p>Aplikácia „Môj TODO List“ slúži na správu osobných úloh. Úlohy sa ukladajú na serveri cez REST API, zobrazujú sa v zozname aj v kalendári.</p>
-    <p>Použité technológie: Vue 3, Vite, FullCalendar 6 (kalendár), Bootstrap 5 (štýly), REST API https://wt1zadanie.iolab.sk.</p>
-    <p>© 2026 Zakhar Trofymenko, WEBTE1</p>
+
+  <footer class="container border-top py-3 mt-4 small text-muted">
+    <h2 class="h6">O projekte</h2>
+    <p class="mb-1">Aplikácia „Môj TODO List“ slúži na správu osobných úloh. Úlohy sa ukladajú na serveri cez REST API, zobrazujú sa v zozname aj v kalendári.</p>
+    <p class="mb-1">Použité technológie: Vue 3, Vite, FullCalendar 6 (kalendár), Bootstrap 5 (štýly), REST API https://wt1zadanie.iolab.sk.</p>
+    <p class="mb-0">© 2026 Zakhar Trofymenko, WEBTE1</p>
   </footer>
 </template>
 
 <style scoped>
+  :global(body) {
+    background: #f4f6fb;
+  }
+
+  .calendar-card,
+  .card,
+  .list-group {
+    background: #fff;
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .calendar-card {
+    padding: 1rem;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+    vertical-align: middle;
+  }
+
+  .todo-item:hover {
+    background: #f1f4fb;
+  }
+
   .done {
+    background: #fafafa;
+  }
+
+  .done strong {
+    font-weight: 500;
+    color: #6c757d;
     text-decoration: line-through;
-    color: gray;
   }
 
   .overdue {
-    color: red;
+    border-left: 4px solid #dc3545;
+  }
+
+  .overdue strong {
+    color: #dc3545;
+  }
+
+  :deep(.fc a) {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  :deep(.fc .fc-toolbar-title) {
+    font-size: 1.4rem;
+  }
+
+  :deep(.fc-event) {
+    cursor: pointer;
   }
 
   :deep(.ev-done) {
-    opacity: 0.5;
-    text-decoration: line-through;
+    opacity: 0.65;
   }
 
   .layout {
@@ -316,21 +418,6 @@ onMounted(() => {
     grid-template-columns: 2fr 1fr;
     gap: 1rem;
     align-items: start;
-  }
-
-  .panel {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  .panel input,
-  .panel textarea {
-    display: block;
-    width: 100%;
-    margin-bottom: 0.5rem;
-    box-sizing: border-box;
   }
 
   @media (max-width: 800px) {
