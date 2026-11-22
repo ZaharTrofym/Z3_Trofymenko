@@ -52,3 +52,12 @@ export async function updateTodo(name, id, todo) {
   }
   return await response.json();
 }
+
+export async function resetTodos(name) {
+  const response = await fetch(BASE_URL + "/" + encodeURIComponent(name) + "/reset", {
+    method: "POST"
+  });
+  if (!response.ok) {
+    throw new Error("HTTP " + response.status);
+  }
+}

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { getTodos, createTodo, deleteTodo, setDone, updateTodo } from "./services/api.js";
+import { getTodos, createTodo, deleteTodo, setDone, updateTodo, resetTodos } from "./services/api.js";
 
 import FullCalendar from "@fullcalendar/vue3";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -174,12 +174,26 @@ function isOverdue(todo) {
   return !todo.is_finished && new Date(todo.date_to) < new Date();
 }
 
+async function resetAll() {
+  if (!confirm("Všetky vaše úlohy budú odstránené a nahradené piatimi ukážkovými úlohami. Pokračovať?")) {
+    return;
+  }
+  try {
+    await resetTodos(student);
+    selectedId.value = null;
+    await loadTodos();
+  } catch (error) {
+    errorMessage.value = "Chyba: " + error.message;
+  }
+}
+
 onMounted(loadTodos);
 </script>
 
 <template>
   <main>
     <h1>Môj TODO List</h1>
+    <button type="button" @click="resetAll">Obnoviť ukážkové úlohy</button>
     <p v-if="loading">Načítavam…</p>
     <p v-if="errorMessage">{{ errorMessage }}</p>
 
