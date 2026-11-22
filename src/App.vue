@@ -266,7 +266,7 @@ onMounted(() => {
 
     <p v-if="loading" class="text-muted">Načítavam…</p>
     <p v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</p>
-    <p v-if="successMessage" class="alert alert-success">{{ successMessage }}</p>
+    <p v-if="successMessage" class="alert alert-success toast-msg">{{ successMessage }}</p>
 
     <div class="layout">
       <section class="calendar-card">
@@ -435,6 +435,15 @@ onMounted(() => {
     grid-template-columns: 2fr 1fr;
     gap: 1rem;
     align-items: start;
+  }
+
+  .toast-msg {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1050;
+    margin: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   @media (max-width: 800px) {
