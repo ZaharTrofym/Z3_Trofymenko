@@ -166,9 +166,12 @@ function logout() {
   formTodo.value = emptyTodo();
 }
 
+let toastTimer = null;
+
 function showSuccess(text) {
   successMessage.value = text;
-  setTimeout(() => {
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
     successMessage.value = "";
   }, 3000);
 }
