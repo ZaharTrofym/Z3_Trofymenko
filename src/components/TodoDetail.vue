@@ -9,7 +9,7 @@ defineEmits(["toggle", "edit", "remove", "close"]);
 </script>
 
 <template>
-  <section class="card card-body mb-3">
+  <section id="todo-detail" class="card card-body mb-3">
     <h2 class="h5 detail-text">{{ todo.title }}</h2>
     <p class="mb-1 detail-text">{{ todo.description }}</p>
     <p class="small text-muted mb-1">{{ formatDate(todo.date_from) }} – {{ formatDate(todo.date_to) }}</p>

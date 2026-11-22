@@ -21,7 +21,8 @@ const calendarOptions = computed(() => ({
   displayEventTime: true,
   displayEventEnd: true,
   views: {
-    dayGridMonth: { displayEventEnd: false }
+    dayGridMonth: { displayEventEnd: false },
+    timeGridWeek: { dayHeaderFormat: { weekday: "short", day: "numeric" } }
   },
   eventTimeFormat: { hour: "2-digit", minute: "2-digit", hour12: false },
   dayMaxEvents: 3,
@@ -120,18 +121,31 @@ const calendarOptions = computed(() => ({
   opacity: 0.65;
 }
 
+@media (max-width: 1000px) {
+  :deep(.fc .fc-toolbar) {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  :deep(.fc .fc-toolbar-chunk:nth-child(2)) {
+    order: -1;
+    width: 100%;
+    text-align: center;
+  }
+
+  :deep(.fc .fc-toolbar-title) {
+    font-size: 1.2rem;
+  }
+}
+
 @media (max-width: 600px) {
   .calendar-card {
     padding: 0.5rem;
   }
 
-  :deep(.fc .fc-toolbar) {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  :deep(.fc .fc-toolbar-title) {
-    font-size: 1.1rem;
+  :deep(.fc .fc-button) {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
   }
 }
 </style>

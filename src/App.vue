@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import { getTodos, createTodo, deleteTodo, setDone, updateTodo, resetTodos } from "./services/api.js";
 import { toInputValue } from "./utils/dates.js";
 
@@ -91,6 +91,14 @@ async function toggleDone(todo) {
 
 function scrollToForm() {
   document.getElementById("todo-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function selectTodo(id) {
+  selectedId.value = id;
+  if (window.innerWidth <= 800) {
+    await nextTick();
+    document.getElementById("todo-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function startEdit(todo) {
@@ -202,7 +210,7 @@ onMounted(() => {
     <p v-if="successMessage" class="alert alert-success toast-msg" role="status">{{ successMessage }}</p>
 
     <div class="layout">
-      <TodoCalendar :todos="todos" @select="selectedId = $event" @create="startCreate" />
+      <TodoCalendar :todos="todos" @select="selectTodo" @create="startCreate" />
 
       <aside>
         <TodoDetail
