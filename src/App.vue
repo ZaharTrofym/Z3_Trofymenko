@@ -189,9 +189,12 @@ onMounted(() => {
   <main v-else class="container py-3">
     <AppHeader :student="student" @reset="resetAll" @logout="logout" />
 
-    <p v-if="loading" class="text-muted">
+    <p v-if="loading && todos.length === 0" class="text-muted">
       <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Načítavam…
     </p>
+    <div v-if="loading && todos.length > 0" class="loading-badge" role="status">
+      <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Aktualizujem…
+    </div>
     <div v-if="errorMessage" class="alert alert-danger d-flex flex-wrap justify-content-between align-items-center gap-2" role="alert">
       <span>{{ errorMessage }}</span>
       <button type="button" class="btn btn-sm btn-outline-danger" @click="loadTodos">Skúsiť znova</button>
@@ -235,6 +238,18 @@ onMounted(() => {
   z-index: 1050;
   margin: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.loading-badge {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 1050;
+  background: #fff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-size: 0.875rem;
 }
 
 .layout {
