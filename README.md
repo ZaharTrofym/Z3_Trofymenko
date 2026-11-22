@@ -1,7 +1,7 @@
 # Môj TODO List (Zadanie 3, WEBTE1)
 
 Autor: Zakhar Trofymenko
-Odkaz na stránku: https://webte1.fei.stuba.sk/~xtrofymenko/zadanie3/
+Odkaz na stránku: https://webte1.fei.stuba.sk/~xtrofymenko/Z3_Trofymenko/
 Repozitár: https://github.com/ZaharTrofym/Z3_Trofymenko
 
 ## Popis
@@ -24,4 +24,4 @@ Build: npm run build (výstup v priečinku dist).
 - `src/assets/main.css` – spoločné štýly
 
 ## Použitie AI
-Pri práci som použil AI nástroj Claude (Anthropic) ako pomocníka na vysvetlenie a návrh častí kódu. Kód som písal, upravoval a testoval sám a viem ho vysvetliť.
+Pri práci som použil AI nástroj Claude (Anthropic). Pomáhal mi s vysvetlením, návrhom a písaním častí kódu (napr. rozdelenie na komponenty, ošetrenie chýb v api.js, úpravy kalendára). Celý kód som prešiel, otestoval v prehliadači a viem ho vysvetliť.
