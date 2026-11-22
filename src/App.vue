@@ -288,6 +288,12 @@ onMounted(() => {
     </ul>
     <p v-if="!loading && visibleTodos.length === 0">Žiadne úlohy na zobrazenie.</p>
   </main>
+  <footer>
+  <h2>O projekte</h2>
+    <p>Aplikácia „Môj TODO List“ slúži na správu osobných úloh. Úlohy sa ukladajú na serveri cez REST API, zobrazujú sa v zozname aj v kalendári.</p>
+    <p>Použité technológie: Vue 3, Vite, FullCalendar 6 (kalendár), Bootstrap 5 (štýly), REST API https://wt1zadanie.iolab.sk.</p>
+    <p>© 2026 Zakhar Trofymenko, WEBTE1</p>
+  </footer>
 </template>
 
 <style scoped>
